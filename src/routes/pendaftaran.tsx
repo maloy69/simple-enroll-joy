@@ -14,6 +14,7 @@ import {
   type Jadwal,
   type RegStatus,
 } from "@/lib/spmb";
+import { cariWilayah } from "@/lib/wilayah";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
