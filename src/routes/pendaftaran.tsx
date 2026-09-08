@@ -485,11 +485,14 @@ function PendaftaranPage() {
                 <option value="P">Perempuan</option>
               </select>
             </Field>
-            <Field label="Tempat lahir" error={errors["birth_place"]}>
-              <Input
+            <Field
+              label="Tempat lahir"
+              error={errors["birth_place"]}
+              hint="Ketik 3 huruf untuk melihat saran kota/kabupaten"
+            >
+              <InputTempatLahir
                 value={form["birth_place"] ?? ""}
-                onChange={(e) => set("birth_place", e.target.value)}
-                placeholder="Kota kelahiran"
+                onChange={(v) => set("birth_place", v)}
               />
             </Field>
             <Field label="Tanggal lahir" error={errors["birth_date"]}>
