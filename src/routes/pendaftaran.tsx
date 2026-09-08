@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DocumentUploader, type DocRow } from "@/components/DocumentUploader";
 
 export const Route = createFileRoute("/pendaftaran")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Formulir Pendaftaran Murid Baru — SPMB Online" },
@@ -47,6 +48,44 @@ const LANGKAH = [
   "Dokumen",
   "Ringkasan",
 ];
+
+/** Kunci penyimpanan sementara di perangkat untuk pendaftar yang belum masuk. */
+const DRAFT_KEY = "spmb-draft";
+
+function bacaDraft(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof v === "string") out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function simpanDraft(form: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+  } catch {
+    /* penyimpanan penuh atau ditolak: abaikan */
+  }
+}
+
+function hapusDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* abaikan */
+  }
+}
 
 function Field({
   label,
