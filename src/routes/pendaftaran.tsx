@@ -14,6 +14,7 @@ import {
   type Jadwal,
   type RegStatus,
 } from "@/lib/spmb";
+import { cariWilayah } from "@/lib/wilayah";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,6 +105,51 @@ function Field({
       {children}
       {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function InputTempatLahir({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [buka, setBuka] = useState(false);
+  const saran = useMemo(() => cariWilayah(value), [value]);
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setBuka(true);
+        }}
+        onFocus={() => setBuka(true)}
+        onBlur={() => window.setTimeout(() => setBuka(false), 120)}
+        placeholder="Kota kelahiran"
+        autoComplete="off"
+      />
+      {buka && saran.length > 0 && (
+        <ul className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+          {saran.map((nama) => (
+            <li key={nama}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(nama);
+                  setBuka(false);
+                }}
+              >
+                {nama}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -485,11 +531,14 @@ function PendaftaranPage() {
                 <option value="P">Perempuan</option>
               </select>
             </Field>
-            <Field label="Tempat lahir" error={errors["birth_place"]}>
-              <Input
+            <Field
+              label="Tempat lahir"
+              error={errors["birth_place"]}
+              hint="Ketik 3 huruf untuk melihat saran kota/kabupaten"
+            >
+              <InputTempatLahir
                 value={form["birth_place"] ?? ""}
-                onChange={(e) => set("birth_place", e.target.value)}
-                placeholder="Kota kelahiran"
+                onChange={(v) => set("birth_place", v)}
               />
             </Field>
             <Field label="Tanggal lahir" error={errors["birth_date"]}>
