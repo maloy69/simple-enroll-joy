@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, FileText, IdCard, Loader2 } from "lucide-react";
+import { ArrowRight, Download, FileText, IdCard, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   DOC_TYPES,
@@ -165,6 +165,11 @@ function DashboardPage() {
                 <Button asChild variant="outline" size="sm">
                   <Link to="/kartu">
                     <IdCard className="size-4" /> Kartu Peserta
+                  </Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/kartu">
+                    <Download className="size-4" /> Unduh Bukti (PDF)
                   </Link>
                 </Button>
               </div>
