@@ -1,7 +1,7 @@
 /** Unduh sebuah elemen HTML sebagai berkas PDF ukuran A4 potret. */
 export async function unduhElemenPdf(element: HTMLElement, fileName: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
+    import("html2canvas-pro"),
     import("jspdf"),
   ]);
 
