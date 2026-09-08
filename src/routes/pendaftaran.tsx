@@ -394,8 +394,8 @@ function PendaftaranPage() {
     }
     await catatAudit("kirim_pendaftaran", "registrations", reg.id);
     await qc.invalidateQueries({ queryKey: ["my-registration"] });
-    toast.success("Pendaftaran terkirim! Menunggu verifikasi operator.");
-    void navigate({ to: "/dashboard" });
+    toast.success("Pendaftaran terkirim! Bukti pendaftaran siap diunduh.");
+    void navigate({ to: "/kartu" });
   }
 
   if (!buka) {
