@@ -287,9 +287,14 @@ function PendaftaranPage() {
   ];
 
   async function simpan(s: number) {
-    if (!reg) return false;
     const fields = FIELDS_BY_STEP[s];
     if (!fields) return true;
+    if (!user) {
+      simpanDraft(form);
+      punyaDraftAwal.current = true;
+      return true;
+    }
+    if (!reg) return false;
     const payload: Record<string, string | null> = {};
     fields.forEach((f) => (payload[f] = form[f]?.trim() ? form[f].trim() : null));
     setSaving(true);
@@ -310,6 +315,11 @@ function PendaftaranPage() {
     }
     const ok = await simpan(step);
     if (!ok) return;
+    if (!user && step === 3) {
+      toast.success("Isian tersimpan. Buat akun untuk melanjutkan unggah dokumen.");
+      void navigate({ to: "/auth", search: { next: "/pendaftaran" } });
+      return;
+    }
     if (step < LANGKAH.length - 1) {
       toast.success("Tersimpan. Anda bisa melanjutkan kapan saja.");
       setStep(step + 1);
