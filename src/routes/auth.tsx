@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    next: typeof search["next"] === "string" && search["next"].startsWith("/")
-      ? (search["next"] as string)
-      : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = search["next"];
+    return typeof next === "string" && next.startsWith("/") ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: "Masuk Akun Wali Murid — SPMB Online" },
