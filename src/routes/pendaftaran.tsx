@@ -108,6 +108,51 @@ function Field({
   );
 }
 
+function InputTempatLahir({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [buka, setBuka] = useState(false);
+  const saran = useMemo(() => cariWilayah(value), [value]);
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setBuka(true);
+        }}
+        onFocus={() => setBuka(true)}
+        onBlur={() => window.setTimeout(() => setBuka(false), 120)}
+        placeholder="Kota kelahiran"
+        autoComplete="off"
+      />
+      {buka && saran.length > 0 && (
+        <ul className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+          {saran.map((nama) => (
+            <li key={nama}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(nama);
+                  setBuka(false);
+                }}
+              >
+                {nama}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PendaftaranPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
