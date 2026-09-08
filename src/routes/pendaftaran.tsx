@@ -626,7 +626,11 @@ function PendaftaranPage() {
           </div>
         )}
 
-        {step === 4 && (
+        {step >= 4 && (!user || !reg) && (
+          <AjakanMasuk pesan="Isian Anda sudah tersimpan di perangkat ini. Buat akun atau masuk untuk mengunggah dokumen dan mengirim pendaftaran." />
+        )}
+
+        {step === 4 && !!user && !!reg && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Unggah berkas berformat PDF, PNG, atau JPG. Ukuran maksimal 2 MB per berkas; foto
@@ -650,7 +654,7 @@ function PendaftaranPage() {
           </div>
         )}
 
-        {step === 5 && (
+        {step === 5 && !!user && !!reg && (
           <div className="space-y-6">
             <div>
               <h2 className="font-semibold">Periksa kembali data Anda</h2>
@@ -691,10 +695,11 @@ function PendaftaranPage() {
         <Button variant="outline" disabled={step === 0} onClick={() => setStep(step - 1)}>
           <ArrowLeft className="size-4" /> Sebelumnya
         </Button>
-        {step < LANGKAH.length - 1 && (
+        {step < LANGKAH.length - 1 && (step < 4 || (!!user && !!reg)) && (
           <Button disabled={saving} onClick={() => void lanjut()}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            Simpan & Lanjut <ArrowRight className="size-4" />
+            {!user && step === 3 ? "Lanjut & Simpan" : "Simpan & Lanjut"}{" "}
+            <ArrowRight className="size-4" />
           </Button>
         )}
       </div>
