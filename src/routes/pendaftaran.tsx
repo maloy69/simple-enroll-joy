@@ -412,6 +412,12 @@ function PendaftaranPage() {
         Langkah {step + 1} dari {LANGKAH.length} · {LANGKAH[step]}
       </p>
 
+      {!user && (
+        <p className="mt-4 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+          Isian tersimpan sementara di perangkat ini. Buat akun saat menyimpan agar tidak hilang.
+        </p>
+      )}
+
       <ol className="mt-6 flex flex-wrap gap-2">
         {LANGKAH.map((l, i) => (
           <li key={l}>

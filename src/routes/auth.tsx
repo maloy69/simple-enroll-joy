@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    next: typeof search["next"] === "string" && search["next"].startsWith("/")
+      ? (search["next"] as string)
+      : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Masuk Akun Wali Murid — SPMB Online" },
