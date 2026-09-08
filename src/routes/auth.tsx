@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = search["next"];
+    return typeof next === "string" && next.startsWith("/") ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: "Masuk Akun Wali Murid — SPMB Online" },
@@ -26,24 +30,43 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const NEXT_KEY = "spmb-next";
+
 function AuthPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      const raw = new URLSearchParams(window.location.search).get("next");
-      const next = raw && raw.startsWith("/") ? raw : "/dashboard";
-      void navigate({ to: next, replace: true });
+    if (search.next) {
+      try {
+        window.sessionStorage.setItem(NEXT_KEY, search.next);
+      } catch {
+        /* abaikan */
+      }
     }
-  }, [loading, user, navigate]);
+  }, [search.next]);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    let simpan: string | null = null;
+    try {
+      simpan = window.sessionStorage.getItem(NEXT_KEY);
+      window.sessionStorage.removeItem(NEXT_KEY);
+    } catch {
+      simpan = null;
+    }
+    const kandidat = search.next ?? simpan;
+    const next = kandidat && kandidat.startsWith("/") ? kandidat : "/dashboard";
+    void navigate({ to: next, replace: true });
+  }, [loading, user, navigate, search.next]);
 
   async function masuk() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth`,
       });
       if (result.error) {
         toast.error("Gagal masuk dengan Google. Silakan coba lagi.");

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DocumentUploader, type DocRow } from "@/components/DocumentUploader";
 
-export const Route = createFileRoute("/_authenticated/pendaftaran")({
+export const Route = createFileRoute("/pendaftaran")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Formulir Pendaftaran Murid Baru — SPMB Online" },
@@ -48,6 +49,44 @@ const LANGKAH = [
   "Ringkasan",
 ];
 
+/** Kunci penyimpanan sementara di perangkat untuk pendaftar yang belum masuk. */
+const DRAFT_KEY = "spmb-draft";
+
+function bacaDraft(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof v === "string") out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function simpanDraft(form: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+  } catch {
+    /* penyimpanan penuh atau ditolak: abaikan */
+  }
+}
+
+function hapusDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* abaikan */
+  }
+}
+
 function Field({
   label,
   children,
@@ -74,7 +113,9 @@ function PendaftaranPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string>>(() => bacaDraft());
+  const punyaDraftAwal = useRef(Object.keys(bacaDraft()).length > 0);
+  const sudahPindah = useRef(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -134,6 +175,46 @@ function PendaftaranPage() {
     }
     setForm((prev) => (Object.keys(prev).length ? prev : next));
   }, [reg]);
+
+  // Selama belum masuk, isian disimpan di perangkat agar tidak hilang.
+  useEffect(() => {
+    if (user) return;
+    if (!Object.keys(form).length) return;
+    simpanDraft(form);
+  }, [form, user]);
+
+  // Setelah pendaftar punya akun, isian sementara dipindahkan ke data pendaftarannya.
+  useEffect(() => {
+    if (!user || !reg || sudahPindah.current) return;
+    if (!punyaDraftAwal.current) return;
+    if (reg.status !== "draft") {
+      punyaDraftAwal.current = false;
+      hapusDraft();
+      return;
+    }
+    sudahPindah.current = true;
+    const draft = bacaDraft();
+    const payload: Record<string, string | null> = {};
+    FIELDS_BY_STEP.flat().forEach((f) => {
+      const v = draft[f];
+      if (v !== undefined) payload[f] = v.trim() ? v.trim() : null;
+    });
+    void (async () => {
+      if (Object.keys(payload).length) {
+        const { error } = await db.from("registrations").update(payload).eq("id", reg.id);
+        if (error) {
+          sudahPindah.current = false;
+          toast.error("Isian sementara gagal dipindahkan. Silakan coba lagi.");
+          return;
+        }
+      }
+      hapusDraft();
+      punyaDraftAwal.current = false;
+      await refetchReg();
+      toast.success("Isian Anda tersimpan di akun. Lanjutkan dengan unggah dokumen.");
+      setStep(4);
+    })();
+  }, [user, reg, refetchReg]);
 
   const buka = pendaftaranDibuka(settings);
   const terkunci = !!reg && reg.status !== "draft";
@@ -206,9 +287,14 @@ function PendaftaranPage() {
   ];
 
   async function simpan(s: number) {
-    if (!reg) return false;
     const fields = FIELDS_BY_STEP[s];
     if (!fields) return true;
+    if (!user) {
+      simpanDraft(form);
+      punyaDraftAwal.current = true;
+      return true;
+    }
+    if (!reg) return false;
     const payload: Record<string, string | null> = {};
     fields.forEach((f) => (payload[f] = form[f]?.trim() ? form[f].trim() : null));
     setSaving(true);
@@ -229,6 +315,11 @@ function PendaftaranPage() {
     }
     const ok = await simpan(step);
     if (!ok) return;
+    if (!user && step === 3) {
+      toast.success("Isian tersimpan. Buat akun untuk melanjutkan unggah dokumen.");
+      void navigate({ to: "/auth", search: { next: "/pendaftaran" } });
+      return;
+    }
     if (step < LANGKAH.length - 1) {
       toast.success("Tersimpan. Anda bisa melanjutkan kapan saja.");
       setStep(step + 1);
@@ -292,7 +383,7 @@ function PendaftaranPage() {
     );
   }
 
-  if (!reg) {
+  if (user && !reg) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -302,12 +393,30 @@ function PendaftaranPage() {
 
   const namaJurusan = (id?: string) => (majors ?? []).find((m) => m.id === id)?.name ?? "-";
 
+  const AjakanMasuk = ({ pesan }: { pesan: string }) => (
+    <div className="rounded-xl border bg-muted/50 p-5 text-center">
+      <p className="text-sm text-muted-foreground">{pesan}</p>
+      <Button
+        className="mt-4"
+        onClick={() => void navigate({ to: "/auth", search: { next: "/pendaftaran" } })}
+      >
+        Buat Akun / Masuk <ArrowRight className="size-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-bold md:text-3xl">Formulir Pendaftaran</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Langkah {step + 1} dari {LANGKAH.length} · {LANGKAH[step]}
       </p>
+
+      {!user && (
+        <p className="mt-4 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+          Isian tersimpan sementara di perangkat ini. Buat akun saat menyimpan agar tidak hilang.
+        </p>
+      )}
 
       <ol className="mt-6 flex flex-wrap gap-2">
         {LANGKAH.map((l, i) => (
@@ -523,7 +632,11 @@ function PendaftaranPage() {
           </div>
         )}
 
-        {step === 4 && (
+        {step >= 4 && (!user || !reg) && (
+          <AjakanMasuk pesan="Isian Anda sudah tersimpan di perangkat ini. Buat akun atau masuk untuk mengunggah dokumen dan mengirim pendaftaran." />
+        )}
+
+        {step === 4 && !!user && !!reg && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Unggah berkas berformat PDF, PNG, atau JPG. Ukuran maksimal 2 MB per berkas; foto
@@ -547,7 +660,7 @@ function PendaftaranPage() {
           </div>
         )}
 
-        {step === 5 && (
+        {step === 5 && !!user && !!reg && (
           <div className="space-y-6">
             <div>
               <h2 className="font-semibold">Periksa kembali data Anda</h2>
@@ -588,10 +701,11 @@ function PendaftaranPage() {
         <Button variant="outline" disabled={step === 0} onClick={() => setStep(step - 1)}>
           <ArrowLeft className="size-4" /> Sebelumnya
         </Button>
-        {step < LANGKAH.length - 1 && (
+        {step < LANGKAH.length - 1 && (step < 4 || (!!user && !!reg)) && (
           <Button disabled={saving} onClick={() => void lanjut()}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            Simpan & Lanjut <ArrowRight className="size-4" />
+            {!user && step === 3 ? "Lanjut & Simpan" : "Simpan & Lanjut"}{" "}
+            <ArrowRight className="size-4" />
           </Button>
         )}
       </div>
