@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DocumentUploader, type DocRow } from "@/components/DocumentUploader";
 
-export const Route = createFileRoute("/_authenticated/pendaftaran")({
+export const Route = createFileRoute("/pendaftaran")({
   head: () => ({
     meta: [
       { title: "Formulir Pendaftaran Murid Baru — SPMB Online" },
