@@ -48,6 +48,9 @@ type Reg = {
 function KartuPage() {
   const { user } = useAuth();
   const [qr, setQr] = useState<string | null>(null);
+  const [unduh, setUnduh] = useState(false);
+  const kartuRef = useRef<HTMLDivElement>(null);
+
 
   const { data: settings } = useQuery({
     queryKey: ["settings"],
@@ -84,7 +87,22 @@ function KartuPage() {
     void QRCode.toDataURL(url, { width: 320, margin: 1 }).then(setQr);
   }, [reg?.qr_token]);
 
+  async function unduhPdf() {
+    if (!kartuRef.current) return;
+    setUnduh(true);
+    try {
+      const nomor = reg?.registration_number ?? "draft";
+      await unduhElemenPdf(kartuRef.current, `Bukti-Pendaftaran-${nomor}.pdf`);
+      toast.success("Bukti pendaftaran berhasil diunduh.");
+    } catch {
+      toast.error("Gagal membuat PDF. Silakan gunakan tombol Cetak A4.");
+    } finally {
+      setUnduh(false);
+    }
+  }
+
   if (isLoading) {
+
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
