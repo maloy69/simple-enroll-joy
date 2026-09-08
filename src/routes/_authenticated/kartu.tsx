@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Loader2, Printer } from "lucide-react";
+import { toast } from "sonner";
+import { Download, Loader2, Printer } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { db, fmtTanggal, fmtWIB, STATUS_LABEL, type RegStatus } from "@/lib/spmb";
+import { unduhElemenPdf } from "@/lib/pdf";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/CopyButton";
+
 
 export const Route = createFileRoute("/_authenticated/kartu")({
   head: () => ({
@@ -111,18 +114,26 @@ function KartuPage() {
         <div>
           <h1 className="text-2xl font-bold">Kartu Peserta & Bukti Pendaftaran</h1>
           <p className="text-sm text-muted-foreground">
-            Cetak pada kertas A4, lalu bawa saat verifikasi dan daftar ulang.
+            Unduh PDF atau cetak pada kertas A4, lalu bawa saat verifikasi dan daftar ulang.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {reg.registration_number && (
             <CopyButton value={reg.registration_number} label="Salin nomor" />
           )}
+          <Button variant="outline" asChild>
+            <Link to="/dashboard">Kembali ke Dashboard</Link>
+          </Button>
+          <Button variant="outline" disabled={unduh} onClick={() => void unduhPdf()}>
+            {unduh ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}{" "}
+            Unduh PDF
+          </Button>
           <Button onClick={() => window.print()}>
-            <Printer className="size-4" /> Cetak / Simpan PDF
+            <Printer className="size-4" /> Cetak A4
           </Button>
         </div>
       </div>
+
 
       <div className="kartu-a4 mt-8 border bg-white p-10 text-slate-900 shadow-sm print:mt-0 print:border-0 print:shadow-none">
         <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
