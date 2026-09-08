@@ -152,8 +152,10 @@ function KartuPage() {
         </div>
       </div>
 
-
-      <div className="kartu-a4 mt-8 border bg-white p-10 text-slate-900 shadow-sm print:mt-0 print:border-0 print:shadow-none">
+      <div
+        ref={kartuRef}
+        className="kartu-a4 mt-8 border bg-white p-10 text-slate-900 shadow-sm print:mt-0 print:border-0 print:shadow-none"
+      >
         <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-slate-500">
@@ -190,6 +192,7 @@ function KartuPage() {
               ["Nomor HP", reg.parent_phone ?? "-"],
               ["Waktu Pengiriman", fmtWIB(reg.submitted_at)],
               ["Status Berkas", STATUS_LABEL[reg.status]],
+              ["Tanggal Cetak", fmtWIB(new Date().toISOString())],
             ].map(([k, v]) => (
               <tr key={k} className="border-b border-slate-200">
                 <th className="w-56 py-2 text-left font-medium text-slate-600">{k}</th>
