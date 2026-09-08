@@ -113,7 +113,9 @@ function PendaftaranPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string>>(() => bacaDraft());
+  const punyaDraftAwal = useRef(Object.keys(bacaDraft()).length > 0);
+  const sudahPindah = useRef(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -173,6 +175,46 @@ function PendaftaranPage() {
     }
     setForm((prev) => (Object.keys(prev).length ? prev : next));
   }, [reg]);
+
+  // Selama belum masuk, isian disimpan di perangkat agar tidak hilang.
+  useEffect(() => {
+    if (user) return;
+    if (!Object.keys(form).length) return;
+    simpanDraft(form);
+  }, [form, user]);
+
+  // Setelah pendaftar punya akun, isian sementara dipindahkan ke data pendaftarannya.
+  useEffect(() => {
+    if (!user || !reg || sudahPindah.current) return;
+    if (!punyaDraftAwal.current) return;
+    if (reg.status !== "draft") {
+      punyaDraftAwal.current = false;
+      hapusDraft();
+      return;
+    }
+    sudahPindah.current = true;
+    const draft = bacaDraft();
+    const payload: Record<string, string | null> = {};
+    FIELDS_BY_STEP.flat().forEach((f) => {
+      const v = draft[f];
+      if (v !== undefined) payload[f] = v.trim() ? v.trim() : null;
+    });
+    void (async () => {
+      if (Object.keys(payload).length) {
+        const { error } = await db.from("registrations").update(payload).eq("id", reg.id);
+        if (error) {
+          sudahPindah.current = false;
+          toast.error("Isian sementara gagal dipindahkan. Silakan coba lagi.");
+          return;
+        }
+      }
+      hapusDraft();
+      punyaDraftAwal.current = false;
+      await refetchReg();
+      toast.success("Isian Anda tersimpan di akun. Lanjutkan dengan unggah dokumen.");
+      setStep(4);
+    })();
+  }, [user, reg, refetchReg]);
 
   const buka = pendaftaranDibuka(settings);
   const terkunci = !!reg && reg.status !== "draft";
