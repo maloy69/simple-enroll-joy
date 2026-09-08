@@ -383,7 +383,7 @@ function PendaftaranPage() {
     );
   }
 
-  if (!reg) {
+  if (user && !reg) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -392,6 +392,18 @@ function PendaftaranPage() {
   }
 
   const namaJurusan = (id?: string) => (majors ?? []).find((m) => m.id === id)?.name ?? "-";
+
+  const AjakanMasuk = ({ pesan }: { pesan: string }) => (
+    <div className="rounded-xl border bg-muted/50 p-5 text-center">
+      <p className="text-sm text-muted-foreground">{pesan}</p>
+      <Button
+        className="mt-4"
+        onClick={() => void navigate({ to: "/auth", search: { next: "/pendaftaran" } })}
+      >
+        Buat Akun / Masuk <ArrowRight className="size-4" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
